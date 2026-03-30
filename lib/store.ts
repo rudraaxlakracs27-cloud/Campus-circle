@@ -645,10 +645,21 @@ export async function syncAuthUserAccount(authUser: SupabaseAuthUser) {
     typeof metadata.username === "string" && metadata.username.trim()
       ? metadata.username
       : emailPrefix;
-  const universityId =
+  let universityId =
     typeof metadata.university_id === "string" && metadata.university_id.trim()
       ? metadata.university_id
       : firstUniversity.id;
+
+  if (universityId !== firstUniversity.id) {
+    const validUni = await prisma.university.findUnique({
+      where: { id: universityId },
+      select: { id: true }
+    });
+    if (!validUni) {
+      universityId = firstUniversity.id;
+    }
+  }
+
   const username = await getAvailableUsername(usernameSource);
 
   const user = await prisma.user.create({
