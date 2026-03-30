@@ -1,0 +1,128 @@
+{
+  "universities": [
+    {
+      "id": "uni-iit-delhi",
+      "name": "IIT Delhi",
+      "city": "New Delhi",
+      "country": "India",
+      "domain": "iitd.ac.in",
+      "summary": "Large cultural fests, performance nights, and competitive tech events."
+    },
+    {
+      "id": "uni-bits-pilani",
+      "name": "BITS Pilani",
+      "city": "Pilani",
+      "country": "India",
+      "domain": "bits-pilani.ac.in",
+      "summary": "Hackathons, startup showcases, and cross-campus innovation programs."
+    },
+    {
+      "id": "uni-du",
+      "name": "Delhi University",
+      "city": "New Delhi",
+      "country": "India",
+      "domain": "du.ac.in",
+      "summary": "Society meetups, college fests, tournaments, and student-run markets."
+    }
+  ],
+  "users": [
+    {
+      "id": "user-aarav",
+      "fullName": "Aarav Mehta",
+      "username": "@aarav.on.campus",
+      "email": "aarav@iitd.ac.in",
+      "universityId": "uni-iit-delhi",
+      "role": "Cultural Council Lead",
+      "bio": "I organize music nights, founder meetups, and creator collabs on campus. My profile acts like both a personal identity and an event publishing hub so students can trust who is behind each announcement.",
+      "interests": ["Live music", "Campus media", "Startup mixers", "Student communities"],
+      "followers": 5100,
+      "affiliation": "Cultural Council",
+      "isVerified": true
+    },
+    {
+      "id": "user-naina",
+      "fullName": "Naina Kapoor",
+      "username": "@naina.builds",
+      "email": "naina@bits-pilani.ac.in",
+      "universityId": "uni-bits-pilani",
+      "role": "Tech Club Organizer",
+      "bio": "I host late-night hack sessions, demo days, and startup collabs across campuses.",
+      "interests": ["Hackathons", "AI demos", "Startup events", "Mentorship"],
+      "followers": 3200,
+      "affiliation": "Tech Club",
+      "isVerified": true
+    },
+    {
+      "id": "user-sana",
+      "fullName": "Sana Arora",
+      "username": "@sana.in.the.quad",
+      "email": "sana@du.ac.in",
+      "universityId": "uni-du",
+      "role": "Student Founder",
+      "bio": "I bring together student founders, campus vendors, and creators for community-driven event experiences.",
+      "interests": ["Student brands", "Community events", "Food pop-ups", "Pitch nights"],
+      "followers": 4100,
+      "affiliation": "Entrepreneurship Cell",
+      "isVerified": true
+    }
+  ],
+  "posts": [
+    {
+      "id": "post-1",
+      "authorId": "user-aarav",
+      "universityId": "uni-iit-delhi",
+      "title": "Crescendo '26: Battle of the Bands",
+      "description": "The music society is opening our annual campus stage to indie bands, solo artists, and DJs. Expect food trucks, pop-up merch booths, and a live aftermovie crew capturing the night for reels and recap posts.",
+      "category": "Music Fest",
+      "eventDate": "2026-04-12",
+      "location": "Open Air Theatre",
+      "visibility": "PUBLIC",
+      "mediaType": "Video + Poster",
+      "coverImage": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=1200&q=80",
+      "rsvpLink": "https://example.com/crescendo",
+      "likeCount": 2400,
+      "commentCount": 184,
+      "shareCount": 309,
+      "interestedCount": 1800,
+      "createdAt": "2026-03-26T18:30:00.000Z"
+    },
+    {
+      "id": "post-2",
+      "authorId": "user-naina",
+      "universityId": "uni-bits-pilani",
+      "title": "Inter-University Hack Night",
+      "description": "A midnight build sprint where students from multiple colleges team up around AI, climate, and fintech tracks. Mentors, sponsor challenges, and internship scouts will join the live showcase the next morning.",
+      "category": "Hackathon",
+      "eventDate": "2026-04-18",
+      "location": "Innovation Lab",
+      "visibility": "VERIFIED_ONLY",
+      "mediaType": "Carousel + Registration Link",
+      "coverImage": "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80",
+      "rsvpLink": "https://example.com/hacknight",
+      "likeCount": 1600,
+      "commentCount": 121,
+      "shareCount": 267,
+      "interestedCount": 940,
+      "createdAt": "2026-03-27T09:15:00.000Z"
+    },
+    {
+      "id": "post-3",
+      "authorId": "user-sana",
+      "universityId": "uni-du",
+      "title": "Street Food and Startup Market",
+      "description": "Entrepreneurship cell meets food carnival. Student founders can showcase brands, campus chefs can host stalls, and creators can publish teaser clips ahead of the weekend rush.",
+      "category": "Community Event",
+      "eventDate": "2026-04-20",
+      "location": "North Campus Greens",
+      "visibility": "PUBLIC",
+      "mediaType": "Photo Reel + Menu PDF",
+      "coverImage": "https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=1200&q=80",
+      "rsvpLink": "https://example.com/startup-market",
+      "likeCount": 3200,
+      "commentCount": 246,
+      "shareCount": 410,
+      "interestedCount": 2100,
+      "createdAt": "2026-03-28T14:45:00.000Z"
+    }
+  ]
+}
