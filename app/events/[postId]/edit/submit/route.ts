@@ -1,11 +1,11 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
 import { getRenderableCoverImage, isRenderableCoverImage } from "@/lib/media";
 import { checkRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
 import { getSessionUser } from "@/lib/session";
 import { uploadEventCoverImage } from "@/lib/supabase/storage";
 import { validateEventPostInput } from "@/lib/validation";
-import { getOwnedPostById, updateEventPost } from "@/lib/store";
+import { CACHE_TAGS, getOwnedPostById, updateEventPost } from "@/lib/store";
 import type { PostVisibility } from "@/lib/types";
 
 function getTextValue(formData: FormData, key: string) {
@@ -104,6 +104,9 @@ export async function POST(
     rsvpLink
   });
 
+  revalidateTag(CACHE_TAGS.feed, "max");
+  revalidateTag(CACHE_TAGS.feedCategories, "max");
+  revalidateTag(CACHE_TAGS.homeStats, "max");
   revalidatePath("/");
   revalidatePath("/profile");
   revalidatePath(`/events/${postId}`);

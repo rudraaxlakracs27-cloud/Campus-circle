@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { checkRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
 import { clearSessionUser, getSessionUser } from "@/lib/session";
@@ -15,6 +15,7 @@ import {
 import {
   createPostReport,
   createComment,
+  CACHE_TAGS,
   deleteEventPost,
   getUserByEmail,
   markNotificationsRead,
@@ -82,6 +83,12 @@ async function isActionRateLimited(input: {
   });
 
   return !result.allowed;
+}
+
+function revalidateSharedTags(...tags: string[]) {
+  for (const tag of tags) {
+    revalidateTag(tag, "max");
+  }
 }
 
 export async function signInAction(formData: FormData) {
@@ -287,6 +294,7 @@ export async function togglePostInteractionInlineAction(input: {
     type: input.type
   });
 
+  revalidateSharedTags(CACHE_TAGS.feed);
   revalidatePath("/");
   revalidatePath("/profile");
   revalidatePath("/saved");
@@ -325,6 +333,7 @@ export async function togglePostRsvpInlineAction(input: {
     status: input.status
   });
 
+  revalidateSharedTags(CACHE_TAGS.feed);
   revalidatePath("/");
   revalidatePath("/profile");
   revalidatePath("/saved");
@@ -401,6 +410,7 @@ export async function createCommentInlineAction(input: {
     parentId: input.parentId
   });
 
+  revalidateSharedTags(CACHE_TAGS.feed);
   revalidatePath("/");
   revalidatePath("/profile");
   revalidatePath("/saved");
@@ -634,6 +644,7 @@ export async function deletePostAction(formData: FormData) {
     userId: currentUser.id
   });
 
+  revalidateSharedTags(CACHE_TAGS.feed, CACHE_TAGS.feedCategories, CACHE_TAGS.homeStats);
   revalidatePath("/");
   revalidatePath("/profile");
   revalidatePath(`/events/${postId}`);
@@ -670,6 +681,7 @@ export async function reportPostAction(formData: FormData) {
     details
   });
 
+  revalidateSharedTags(CACHE_TAGS.moderationReports);
   revalidatePath("/admin/reports");
   redirect(`${redirectTo}${redirectTo.includes("?") ? "&" : "?"}reported=1`);
 }
@@ -694,6 +706,7 @@ export async function reviewReportAction(formData: FormData) {
     status
   });
 
+  revalidateSharedTags(CACHE_TAGS.moderationReports);
   revalidatePath("/admin/reports");
   redirect("/admin/reports");
 }

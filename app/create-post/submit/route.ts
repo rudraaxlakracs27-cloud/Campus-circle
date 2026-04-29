@@ -1,6 +1,6 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { NextResponse } from "next/server";
-import { createEventPost } from "@/lib/store";
+import { CACHE_TAGS, createEventPost } from "@/lib/store";
 import { checkRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
 import { isRenderableCoverImage } from "@/lib/media";
 import { getSessionUser } from "@/lib/session";
@@ -91,6 +91,9 @@ export async function POST(request: Request) {
     rsvpLink
   });
 
+  revalidateTag(CACHE_TAGS.feed, "max");
+  revalidateTag(CACHE_TAGS.feedCategories, "max");
+  revalidateTag(CACHE_TAGS.homeStats, "max");
   revalidatePath("/");
   revalidatePath("/profile");
 

@@ -1,4 +1,4 @@
-import { unstable_noStore as noStore } from "next/cache";
+import { unstable_cache, unstable_noStore as noStore } from "next/cache";
 import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -21,6 +21,22 @@ import type {
 } from "@/lib/types";
 
 type FeedViewerContext = Pick<User, "id" | "universityId" | "interests">;
+type NormalizedFeedFilters = {
+  q: string;
+  university: string;
+  category: string;
+  dateFrom: string;
+  dateTo: string;
+  datePreset: "" | "upcoming" | "weekend" | "month";
+};
+
+export const CACHE_TAGS = {
+  universities: "universities",
+  feedCategories: "feed-categories",
+  homeStats: "home-stats",
+  feed: "feed",
+  moderationReports: "moderation-reports"
+} as const;
 
 function parseInterests(value: string) {
   try {
@@ -61,6 +77,28 @@ function buildFeedWhereClause(input: {
           }
         }
       : {})
+  };
+}
+
+function normalizeFeedFilters(filters: FeedFilters): NormalizedFeedFilters {
+  return {
+    q: filters.q ?? "",
+    university: filters.university ?? "",
+    category: filters.category ?? "",
+    dateFrom: filters.dateFrom ?? "",
+    dateTo: filters.dateTo ?? "",
+    datePreset: filters.datePreset ?? ""
+  };
+}
+
+function denormalizeFeedFilters(filters: NormalizedFeedFilters): FeedFilters {
+  return {
+    q: filters.q || undefined,
+    university: filters.university || undefined,
+    category: filters.category || undefined,
+    dateFrom: filters.dateFrom || undefined,
+    dateTo: filters.dateTo || undefined,
+    datePreset: filters.datePreset || undefined
   };
 }
 
@@ -513,11 +551,10 @@ async function rankFeedPosts(posts: FeedPost[], viewerId?: string | null) {
   });
 }
 
-export async function getFeedPosts(
+async function computeFeedPosts(
   viewer?: FeedViewerContext | null,
   filters: FeedFilters = {}
 ): Promise<FeedPost[]> {
-  noStore();
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   let dateFrom = filters.dateFrom ? new Date(filters.dateFrom) : undefined;
@@ -655,6 +692,27 @@ export async function getFeedPosts(
     console.error("[feed] Falling back to legacy-compatible feed query.", error);
     return getLegacyCompatibleFeedPosts(viewer?.id, filters);
   }
+}
+
+const getCachedPublicFeedPosts = unstable_cache(
+  async (filters: NormalizedFeedFilters) => computeFeedPosts(null, denormalizeFeedFilters(filters)),
+  ["public-feed-posts"],
+  {
+    revalidate: 60,
+    tags: [CACHE_TAGS.feed]
+  }
+);
+
+export async function getFeedPosts(
+  viewer?: FeedViewerContext | null,
+  filters: FeedFilters = {}
+): Promise<FeedPost[]> {
+  if (viewer) {
+    noStore();
+    return computeFeedPosts(viewer, filters);
+  }
+
+  return getCachedPublicFeedPosts(normalizeFeedFilters(filters));
 }
 
 export async function getUserById(userId: string) {
@@ -921,40 +979,50 @@ export async function getUserFeedSummary(userId: string) {
   };
 }
 
-export async function getHomeStats(): Promise<HomeStat[]> {
-  noStore();
-  const today = new Date();
-  const [universityCount, upcomingPostsCount, mediaTypeGroups] = await Promise.all([
-    prisma.university.count(),
-    prisma.eventPost.count({
-      where: {
-        eventDate: {
-          gte: today
+const getCachedHomeStats = unstable_cache(
+  async (): Promise<HomeStat[]> => {
+    const today = new Date();
+    const [universityCount, upcomingPostsCount, mediaTypeGroups] = await Promise.all([
+      prisma.university.count(),
+      prisma.eventPost.count({
+        where: {
+          eventDate: {
+            gte: today
+          }
         }
-      }
-    }),
-    prisma.eventPost.groupBy({
-      by: ["mediaType"]
-    })
-  ]);
+      }),
+      prisma.eventPost.groupBy({
+        by: ["mediaType"]
+      })
+    ]);
 
-  return [
-    {
-      label: "Universities onboarded",
-      value: String(universityCount),
-      detail: "Start with verified student ambassadors and club admins."
-    },
-    {
-      label: "Upcoming events",
-      value: String(upcomingPostsCount),
-      detail: "Students can browse events across their own campus and other universities."
-    },
-    {
-      label: "Media formats tracked",
-      value: String(mediaTypeGroups.length),
-      detail: "Photos, videos, posters, brochures, reels, and registration links."
-    }
-  ];
+    return [
+      {
+        label: "Universities onboarded",
+        value: String(universityCount),
+        detail: "Start with verified student ambassadors and club admins."
+      },
+      {
+        label: "Upcoming events",
+        value: String(upcomingPostsCount),
+        detail: "Students can browse events across their own campus and other universities."
+      },
+      {
+        label: "Media formats tracked",
+        value: String(mediaTypeGroups.length),
+        detail: "Photos, videos, posters, brochures, reels, and registration links."
+      }
+    ];
+  },
+  ["home-stats"],
+  {
+    revalidate: 300,
+    tags: [CACHE_TAGS.homeStats]
+  }
+);
+
+export async function getHomeStats(): Promise<HomeStat[]> {
+  return getCachedHomeStats();
 }
 
 export async function createEventPost(input: {
@@ -1553,15 +1621,25 @@ export async function createComment(input: {
   }
 }
 
-export async function getUniversities() {
-  noStore();
-  const universities = await prisma.university.findMany({
-    orderBy: {
-      name: "asc"
-    }
-  });
+const getCachedUniversities = unstable_cache(
+  async () => {
+    const universities = await prisma.university.findMany({
+      orderBy: {
+        name: "asc"
+      }
+    });
 
-  return universities.map(mapUniversity);
+    return universities.map(mapUniversity);
+  },
+  ["universities"],
+  {
+    revalidate: 3600,
+    tags: [CACHE_TAGS.universities]
+  }
+);
+
+export async function getUniversities() {
+  return getCachedUniversities();
 }
 
 export async function getSignInUsers(): Promise<SignInUser[]> {
@@ -1627,23 +1705,32 @@ export async function updateUserProfile(input: {
   };
 }
 
-export async function getFeedCategories() {
-  noStore();
-  const categories = await prisma.eventPost.findMany({
-    distinct: ["category"],
-    select: {
-      category: true
-    },
-    orderBy: {
-      category: "asc"
-    }
-  });
+const getCachedFeedCategories = unstable_cache(
+  async () => {
+    const categories = await prisma.eventPost.findMany({
+      distinct: ["category"],
+      select: {
+        category: true
+      },
+      orderBy: {
+        category: "asc"
+      }
+    });
 
-  return categories.map((item) => item.category);
+    return categories.map((item) => item.category);
+  },
+  ["feed-categories"],
+  {
+    revalidate: 300,
+    tags: [CACHE_TAGS.feedCategories]
+  }
+);
+
+export async function getFeedCategories() {
+  return getCachedFeedCategories();
 }
 
-export async function getFeedPostById(postId: string, viewerId?: string | null) {
-  noStore();
+async function computeFeedPostById(postId: string, viewerId?: string | null) {
   const post = await prisma.eventPost.findUnique({
     where: {
       id: postId
@@ -1747,6 +1834,24 @@ export async function getFeedPostById(postId: string, viewerId?: string | null) 
     viewerFollowsAuthor: Boolean(follow),
     viewerRsvpStatus: (rsvp?.status as RsvpStatus | undefined) ?? undefined
   });
+}
+
+const getCachedPublicFeedPostById = unstable_cache(
+  async (postId: string) => computeFeedPostById(postId, null),
+  ["public-feed-post-by-id"],
+  {
+    revalidate: 60,
+    tags: [CACHE_TAGS.feed]
+  }
+);
+
+export async function getFeedPostById(postId: string, viewerId?: string | null) {
+  if (viewerId) {
+    noStore();
+    return computeFeedPostById(postId, viewerId);
+  }
+
+  return getCachedPublicFeedPostById(postId);
 }
 
 export async function getSavedPostsForUser(userId: string): Promise<SavedPostItem[]> {
@@ -1908,30 +2013,40 @@ function mapModerationReport(report: {
   };
 }
 
-export async function getModerationReports() {
-  noStore();
-  const reports = await prisma.report.findMany({
-    include: {
-      post: {
-        include: {
-          author: true,
-          university: true
+const getCachedModerationReports = unstable_cache(
+  async () => {
+    const reports = await prisma.report.findMany({
+      include: {
+        post: {
+          include: {
+            author: true,
+            university: true
+          }
+        },
+        reporter: true,
+        reviewer: true
+      },
+      orderBy: [
+        {
+          status: "asc"
+        },
+        {
+          createdAt: "desc"
         }
-      },
-      reporter: true,
-      reviewer: true
-    },
-    orderBy: [
-      {
-        status: "asc"
-      },
-      {
-        createdAt: "desc"
-      }
-    ]
-  });
+      ]
+    });
 
-  return reports.map(mapModerationReport);
+    return reports.map(mapModerationReport);
+  },
+  ["moderation-reports"],
+  {
+    revalidate: 30,
+    tags: [CACHE_TAGS.moderationReports]
+  }
+);
+
+export async function getModerationReports() {
+  return getCachedModerationReports();
 }
 
 function mapNotification(notification: {
