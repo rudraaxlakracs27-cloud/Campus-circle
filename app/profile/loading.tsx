@@ -14,27 +14,22 @@ export default function ProfileLoading() {
   return (
     <main className="page-shell">
       <section className="hero">
-        <div className="content-grid">
-          <section className="feed-column">
-            <article className="section-card">
-              <div className="author-row">
-                <div className="author-meta">
-                  <div className="skeleton-block skeleton-avatar" />
-                  <div className="stack">
-                    <div className="skeleton-block skeleton-line medium" />
-                    <div className="skeleton-block skeleton-line short" />
-                  </div>
+        <section className="feed-column">
+          <article className="section-card">
+            <div className="author-row">
+              <div className="author-meta">
+                <div className="skeleton-block skeleton-avatar" />
+                <div className="stack">
+                  <div className="skeleton-block skeleton-line medium" />
+                  <div className="skeleton-block skeleton-line short" />
                 </div>
-                <div className="skeleton-block skeleton-pill wide" />
               </div>
-            </article>
-            <ProfileSkeletonCard />
-            <ProfileSkeletonCard />
-          </section>
-          <aside className="sidebar-column">
-            <ProfileSkeletonCard />
-          </aside>
-        </div>
+              <div className="skeleton-block skeleton-pill wide" />
+            </div>
+          </article>
+          <ProfileSkeletonCard />
+          <ProfileSkeletonCard />
+        </section>
       </section>
     </main>
   );

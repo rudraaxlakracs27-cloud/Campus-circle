@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { SiteHeader } from "@/components/site-header";
-import { postCreationSteps } from "@/data/marketing-data";
 import { getSessionUser } from "@/lib/session";
 import { getUniversities } from "@/lib/store";
 
@@ -192,26 +191,6 @@ export default async function CreatePostPage({
               </div>
             </section>
           </form>
-
-          <section className="panel">
-            <div className="section-header">
-              <div>
-                <h3>Creation flow</h3>
-                <p className="muted">A compact checklist underneath the redesigned composer.</p>
-              </div>
-            </div>
-            <div className="list">
-              {postCreationSteps.map((step) => (
-                <div className="list-item" key={step.title}>
-                  <div className="mini-avatar">{step.step}</div>
-                  <div>
-                    <strong>{step.title}</strong>
-                    <div className="muted">{step.description}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
         </div>
       </section>
     </main>

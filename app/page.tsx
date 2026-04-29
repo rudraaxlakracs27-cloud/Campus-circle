@@ -1,7 +1,6 @@
 import { EventFeed } from "@/components/event-feed";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { HeroBanner } from "@/components/hero-banner";
-import { SidePanel } from "@/components/side-panel";
 import { ToastTrigger } from "@/components/toast-trigger";
 import { getSessionUser } from "@/lib/session";
 import { getFeedCategories, getFeedPosts, getHomeStats, getUniversities } from "@/lib/store";
@@ -54,7 +53,7 @@ export default async function Home({
           tone="warning"
         />
       ) : null}
-      <section className="content-grid">
+      <section className="feed-column">
         <EventFeed
           categories={categories}
           currentUser={currentUser}
@@ -62,7 +61,6 @@ export default async function Home({
           posts={posts}
           universities={universities}
         />
-        <SidePanel currentUser={currentUser} posts={posts} universities={universities} />
       </section>
     </main>
   );
