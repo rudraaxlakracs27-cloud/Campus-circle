@@ -62,7 +62,7 @@ export default async function Home({
           posts={posts}
           universities={universities}
         />
-        <SidePanel currentUser={currentUser} universities={universities} />
+        <SidePanel currentUser={currentUser} posts={posts} universities={universities} />
       </section>
     </main>
   );

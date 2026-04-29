@@ -24,59 +24,88 @@ export default async function CreatePostPage({
     <main className="page-shell">
       <section className="hero">
         <SiteHeader currentUser={currentUser} />
-        <span className="eyebrow">Post an event like a creator, not like a spreadsheet</span>
-        <h1 style={{ maxWidth: "10ch" }}>Create event posts with media, links, and campus context.</h1>
-        <p className="hero-copy">
-          You are signed in as {currentUser.fullName}. Publish as a student organizer for{" "}
-          {university?.name}, add a media cover, and send the post straight into the live feed.
-        </p>
+        <div className="create-shell">
+          <div>
+            <span className="eyebrow">Creator workspace</span>
+            <h1 style={{ maxWidth: "12ch", margin: "12px 0 10px" }}>Create New Event Post</h1>
+            <p className="hero-copy">
+              You are publishing as {currentUser.fullName} for {university?.name}. This flow now mirrors your dark glass event-composer reference while keeping the real submission pipeline.
+            </p>
+          </div>
 
-        <section className="content-grid" style={{ marginTop: 28 }}>
-          <div className="feed-column">
-            <article className="composer">
-              <div className="section-header">
+          {params.error === "rate-limited" ? (
+            <FeedbackBanner
+              body="Too many publishing attempts were made from this session. Please wait a little and try again."
+              title="Slow down for a moment"
+              tone="warning"
+            />
+          ) : null}
+
+          <form
+            action="/create-post/submit"
+            className="create-card"
+            encType="multipart/form-data"
+            method="post"
+          >
+            <section className="upload-stage">
+              <div className="upload-dropzone">
                 <div>
-                  <h2>Event composer</h2>
-                  <p className="muted">This form now writes a real post into the Prisma-backed database.</p>
+                  <div className="poster-preview">
+                    <span>^</span>
+                  </div>
+                  <p>
+                    Drag and drop your event poster or upload from your device. You can also{" "}
+                    <label htmlFor="coverUpload">browse</label> and keep an external image URL as a fallback.
+                  </p>
+                  <input accept="image/*" id="coverUpload" name="coverUpload" type="file" />
+                  <p className="muted" style={{ marginTop: 14 }}>
+                    JPG, PNG, GIF, or WebP up to 5 MB. Files are uploaded to Supabase Storage.
+                  </p>
                 </div>
               </div>
-              {params.error === "rate-limited" ? (
-                <FeedbackBanner
-                  body="Too many publishing attempts were made from this session. Please wait a little and try again."
-                  title="Slow down for a moment"
-                  tone="warning"
-                />
-              ) : null}
-              <form
-                action="/create-post/submit"
-                className="form-grid"
-                encType="multipart/form-data"
-                method="post"
-              >
+            </section>
+
+            <section className="create-form-panel">
+              <div className="section-header">
+                <div>
+                  <h2>Event details</h2>
+                  <p className="muted">Shape the title, timing, venue, media, and caption.</p>
+                </div>
+              </div>
+
+              <div className="create-form-grid">
                 <label className="field">
                   <span>Event title</span>
-                  <input name="title" placeholder="Spring Fest Opening Night" required />
+                  <input name="title" placeholder="Event title to here" required />
                 </label>
                 <label className="field">
                   <span>Category</span>
-                  <input name="category" placeholder="Music Fest" required />
+                  <select defaultValue="Music" name="category">
+                    <option>Music</option>
+                    <option>Tech</option>
+                    <option>Sports</option>
+                    <option>Academic</option>
+                    <option>Social</option>
+                  </select>
                 </label>
-                <label className="field">
-                  <span>Event date</span>
-                  <input name="eventDate" required type="date" />
-                </label>
+                <div className="inline-dual">
+                  <label className="field">
+                    <span>Event date</span>
+                    <input name="eventDate" required type="date" />
+                  </label>
+                  <label className="field">
+                    <span>Media type</span>
+                    <select defaultValue="Poster + RSVP" name="mediaType">
+                      <option>Poster + RSVP</option>
+                      <option>Video + Poster</option>
+                      <option>Carousel + Registration Link</option>
+                      <option>Photo Reel + Brochure</option>
+                    </select>
+                  </label>
+                </div>
                 <label className="field">
                   <span>Venue</span>
-                  <input name="location" placeholder="Main Auditorium" required />
-                </label>
-                <label className="field">
-                  <span>Media type</span>
-                  <select defaultValue="Poster + RSVP" name="mediaType">
-                    <option>Poster + RSVP</option>
-                    <option>Video + Poster</option>
-                    <option>Carousel + Registration Link</option>
-                    <option>Photo Reel + Brochure</option>
-                  </select>
+                  <input name="location" placeholder="Enter venue" required />
                 </label>
                 <label className="field">
                   <span>Visibility</span>
@@ -86,22 +115,15 @@ export default async function CreatePostPage({
                     <option value="CAMPUS_ONLY">Same university only</option>
                   </select>
                 </label>
-                <label className="field field-full">
-                  <span>Upload a poster or cover image</span>
-                  <input accept="image/*" name="coverUpload" type="file" />
-                  <small className="field-hint">
-                    Upload JPG, PNG, GIF, or WebP up to 5 MB. The image is saved locally for this MVP.
-                  </small>
-                </label>
-                <label className="field field-full">
-                  <span>Or use an external cover image URL</span>
+                <label className="field">
+                  <span>External cover image URL</span>
                   <input
                     name="coverImage"
                     placeholder="https://images.unsplash.com/..."
                     type="url"
                   />
                 </label>
-                <label className="field field-full">
+                <label className="field">
                   <span>RSVP or ticket link</span>
                   <input name="rsvpLink" placeholder="https://example.com/register" type="url" />
                 </label>
@@ -160,79 +182,37 @@ export default async function CreatePostPage({
                 ) : null}
 
                 <div className="action-row">
-                  <button className="primary-btn" type="submit">
-                    Publish to feed
+                  <button className="primary-btn glow-submit" type="submit">
+                    Publish
                   </button>
-                </div>
-              </form>
-            </article>
-          </div>
-
-          <aside className="sidebar-column">
-            <section className="panel">
-              <div className="section-header">
-                <div>
-                  <h3>Creation flow</h3>
-                  <p className="muted">A simple publishing sequence for the MVP.</p>
-                </div>
-              </div>
-              <div className="list">
-                {postCreationSteps.map((step) => (
-                  <div className="list-item" key={step.title}>
-                    <div className="mini-avatar">{step.step}</div>
-                    <div>
-                      <strong>{step.title}</strong>
-                      <div className="muted">{step.description}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="panel">
-              <div className="section-header">
-                <div>
-                  <h3>Current publishing identity</h3>
-                  <p className="muted">Every post is automatically connected to the signed-in student.</p>
-                </div>
-              </div>
-              <div className="list-item">
-                <div className="mini-avatar">{currentUser.fullName.slice(0, 1)}</div>
-                <div>
-                  <strong>{currentUser.fullName}</strong>
-                  <div className="muted">
-                    {currentUser.role} at {university?.name}
-                  </div>
+                  <a className="ghost-link" href="/">
+                    Cancel
+                  </a>
                 </div>
               </div>
             </section>
+          </form>
 
-            <section className="panel">
-              <div className="section-header">
-                <div>
-                  <h3>Media upload status</h3>
-                  <p className="muted">This phase adds real Supabase Storage uploads to the MVP.</p>
-                </div>
+          <section className="panel">
+            <div className="section-header">
+              <div>
+                <h3>Creation flow</h3>
+                <p className="muted">A compact checklist underneath the redesigned composer.</p>
               </div>
-              <div className="list">
-                <div className="list-item">
-                  <div className="mini-avatar">1</div>
+            </div>
+            <div className="list">
+              {postCreationSteps.map((step) => (
+                <div className="list-item" key={step.title}>
+                  <div className="mini-avatar">{step.step}</div>
                   <div>
-                    <strong>Upload from your device</strong>
-                    <div className="muted">Event posters and hero images can now be selected directly in the form.</div>
+                    <strong>{step.title}</strong>
+                    <div className="muted">{step.description}</div>
                   </div>
                 </div>
-                <div className="list-item">
-                  <div className="mini-avatar">2</div>
-                  <div>
-                    <strong>Stored in Supabase Storage</strong>
-                    <div className="muted">Files are uploaded to your Supabase bucket so the feed can render them across environments.</div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </aside>
-        </section>
+              ))}
+            </div>
+          </section>
+        </div>
       </section>
     </main>
   );

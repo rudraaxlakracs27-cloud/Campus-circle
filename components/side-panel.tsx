@@ -1,77 +1,63 @@
-import { launchChecklist } from "@/data/marketing-data";
-import type { University, User } from "@/lib/types";
+import type { FeedPost, University, User } from "@/lib/types";
 
 type SidePanelProps = {
   universities: University[];
   currentUser: User | null;
+  posts: FeedPost[];
 };
 
-export function SidePanel({ universities, currentUser }: SidePanelProps) {
+export function SidePanel({ universities, currentUser, posts }: SidePanelProps) {
+  const trendingPosts = posts.slice(0, 3);
+  const suggestedClubs = universities.slice(0, 3).map((university, index) => ({
+    name: [
+      "Photography Club",
+      "Debate Society",
+      "Hiking Club"
+    ][index] ?? `${university.name} Club`,
+    university: university.name
+  }));
+
   return (
     <aside className="sidebar-column">
       <section className="panel">
         <div className="section-header">
           <div>
-            <h3>Core MVP Features</h3>
-            <p className="muted">What the first version should support.</p>
+            <h3>Trending Events</h3>
+            <p className="muted">A fast glance at what is pulling attention right now.</p>
           </div>
         </div>
-        <div className="list">
-          {launchChecklist.map((item) => (
-            <div className="list-item" key={item.title}>
-              <div className="mini-avatar">{item.icon}</div>
+        <div className="feed-side-list">
+          {trendingPosts.map((post) => (
+            <article className="feed-side-item" key={post.id}>
+              <img alt={post.title} className="feed-side-thumb" src={post.coverImage} />
               <div>
-                <strong>{item.title}</strong>
-                <div className="muted">{item.description}</div>
+                <strong>{post.title}</strong>
+                <div className="muted">
+                  {post.university.name} · {new Date(post.eventDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                </div>
               </div>
-            </div>
+            </article>
           ))}
-        </div>
-      </section>
-
-      <section className="spotlight-card">
-        <h3>How it grows beyond one campus</h3>
-        <p className="muted">
-          Every post carries a university identity, so students can browse their own
-          college first and still discover festivals, hackathons, sports meets, and
-          club nights at other universities.
-        </p>
-        <div className="stack">
-          <span className="tag">University tags</span>
-          <span className="tag">Cross-campus explore</span>
-          <span className="tag">Event reminders</span>
         </div>
       </section>
 
       <section className="panel">
         <div className="section-header">
           <div>
-            <h3>Feed ranking signals</h3>
-            <p className="muted">The homepage is no longer a flat reverse-chronological list.</p>
+            <h3>Suggested Clubs</h3>
+            <p className="muted">Communities that match the campus-exploration vibe in your mockup.</p>
           </div>
         </div>
-        <div className="list">
-          <div className="list-item">
-            <div className="mini-avatar">1</div>
-            <div>
-              <strong>Campus relevance</strong>
-              <div className="muted">Events from your university and your interests are pushed upward.</div>
-            </div>
-          </div>
-          <div className="list-item">
-            <div className="mini-avatar">2</div>
-            <div>
-              <strong>Social signals</strong>
-              <div className="muted">Following, saves, likes, RSVP state, and engagement all influence ranking.</div>
-            </div>
-          </div>
-          <div className="list-item">
-            <div className="mini-avatar">3</div>
-            <div>
-              <strong>Event timing</strong>
-              <div className="muted">Sooner upcoming events win over stale posts when the scores are close.</div>
-            </div>
-          </div>
+        <div className="feed-side-list">
+          {suggestedClubs.map((club, index) => (
+            <article className="feed-side-item" key={club.name}>
+              <div className="mini-avatar">{["P", "D", "H"][index] ?? "C"}</div>
+              <div>
+                <strong>{club.name}</strong>
+                <div className="muted">{club.university}</div>
+              </div>
+            </article>
+          ))}
         </div>
       </section>
 
@@ -79,7 +65,7 @@ export function SidePanel({ universities, currentUser }: SidePanelProps) {
         <div className="section-header">
           <div>
             <h3>Session status</h3>
-            <p className="muted">Posting is protected behind student sign-in.</p>
+            <p className="muted">A quick state check for the signed-in creator flow.</p>
           </div>
         </div>
         <div className="list-item">
@@ -98,8 +84,8 @@ export function SidePanel({ universities, currentUser }: SidePanelProps) {
       <section className="section-card">
         <div className="section-header">
           <div>
-            <h3>Universities in the demo</h3>
-            <p className="muted">Examples of how the network effect starts.</p>
+            <h3>Universities in the network</h3>
+            <p className="muted">The multi-campus layer behind feed discovery.</p>
           </div>
         </div>
         <div className="campus-list">

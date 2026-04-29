@@ -1,14 +1,15 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { deletePostAction } from "@/app/actions";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { SiteHeader } from "@/components/site-header";
 import { ToastTrigger } from "@/components/toast-trigger";
+import { getRenderableCoverImage } from "@/lib/media";
 import { getSessionUser } from "@/lib/session";
 import {
   formatDisplayDate,
   formatVisibilityLabel,
-  getInitials,
   getUserFeedSummary
 } from "@/lib/store";
 
@@ -34,28 +35,46 @@ export default async function ProfilePage({
     <main className="page-shell">
       <section className="hero">
         <SiteHeader currentUser={currentUser} />
-        <div className="author-row">
-          <div className="author-meta">
-            <div className="avatar">{getInitials(profile.user.fullName)}</div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: "clamp(2.2rem, 4vw, 3.8rem)" }}>
-                {profile.user.fullName}
-              </h1>
-              <p className="muted" style={{ margin: "10px 0 0" }}>
+        <div className="profile-overview">
+          <div className="profile-hero">
+            <div className="profile-name">
+              <span className="eyebrow">Profile</span>
+              <h1>{profile.user.fullName}</h1>
+              <p className="hero-copy">
                 {profile.user.role} at {profile.university.name}
               </p>
+              <div className="action-row">
+                <span className="pill">{profile.user.username}</span>
+                <Link className="secondary-btn" href="/profile/edit">
+                  Edit profile
+                </Link>
+              </div>
+            </div>
+
+            <div className="profile-metrics">
+              <article className="stat-orb">
+                <div className="stat-orb-content">
+                  <span className="muted">Followers</span>
+                  <strong>{profile.metrics[0]?.value ?? "0"}</strong>
+                </div>
+              </article>
+              <article className="stat-orb">
+                <div className="stat-orb-content">
+                  <span className="muted">Following</span>
+                  <strong>{profile.metrics[1]?.value ?? "0"}</strong>
+                </div>
+              </article>
+              <article className="stat-orb active">
+                <div className="stat-orb-content">
+                  <span className="muted">Events Posted</span>
+                  <strong>{profile.metrics[2]?.value ?? "0"}</strong>
+                </div>
+              </article>
             </div>
           </div>
-          <div className="action-row">
-            <span className="pill">{profile.user.username}</span>
-            <Link className="secondary-btn" href="/profile/edit">
-              Edit profile
-            </Link>
-          </div>
-        </div>
 
-        <div className="content-grid" style={{ marginTop: 28 }}>
-          <section className="feed-column">
+          <div className="profile-main-grid">
+            <section className="feed-column">
             {params.updated ? (
               <ToastTrigger
                 body="Your public profile now reflects the latest identity and organizer details."
@@ -75,13 +94,12 @@ export default async function ProfilePage({
                 tone="warning"
               />
             ) : null}
-            <article className="section-card">
-              <div className="section-header">
-                <div>
-                  <h2>About this student account</h2>
-                  <p className="muted">This profile is now driven by the signed-in student session.</p>
-                </div>
-              </div>
+
+            <article className="glass-feature">
+              <h2 style={{ marginTop: 0 }}>About this student account</h2>
+              <p className="muted" style={{ marginTop: 0 }}>
+                This profile is now driven by the signed-in student session.
+              </p>
               <p className="post-copy">{profile.user.bio}</p>
               <div className="tag-row">
                 {profile.user.interests.map((interest) => (
@@ -92,19 +110,18 @@ export default async function ProfilePage({
               </div>
             </article>
 
-            <article className="section-card">
+            <article>
               <div className="section-header">
                 <div>
-                  <h2>Profile activity</h2>
-                  <p className="muted">Metrics that make creators and organizers visible.</p>
+                  <h2>Activity</h2>
+                  <p className="muted">Quick-glance stats in the warmer glow style from your mockup.</p>
                 </div>
               </div>
-              <div className="stat-grid">
-                {profile.metrics.map((metric) => (
-                  <article className="stat-card" key={metric.label}>
-                    <span className="stat-label">{metric.label}</span>
-                    <span className="stat-value">{metric.value}</span>
-                    <div className="muted">{metric.detail}</div>
+              <div className="metric-strip">
+                {profile.metrics.slice(3).map((metric) => (
+                  <article className="metric-box" key={metric.label}>
+                    <span className="muted">{metric.label}</span>
+                    <strong>{metric.value}</strong>
                   </article>
                 ))}
               </div>
@@ -114,15 +131,20 @@ export default async function ProfilePage({
               <div className="section-header">
                 <div>
                   <h2>Posts from this account</h2>
-                  <p className="muted">Every event published by the signed-in student appears here.</p>
+                  <p className="muted">Event cards reshaped into a visual grid while keeping your live data.</p>
                 </div>
               </div>
-              <div className="list">
+              <div className="profile-post-grid">
                 {profile.posts.length > 0 ? (
                   profile.posts.map((post) => (
-                    <div className="list-item" key={post.id}>
-                      <div className="mini-avatar">{post.category.slice(0, 1)}</div>
-                      <div className="list-content">
+                    <article className="profile-post-card" key={post.id}>
+                      <Image
+                        alt={post.title}
+                        height={420}
+                        src={getRenderableCoverImage(post.coverImage)}
+                        width={680}
+                      />
+                      <div className="profile-post-card-body">
                         <strong>{post.title}</strong>
                         <div className="muted">
                           {formatDisplayDate(post.eventDate)} at {post.location}
@@ -147,7 +169,7 @@ export default async function ProfilePage({
                           </form>
                         </div>
                       </div>
-                    </div>
+                    </article>
                   ))
                 ) : (
                   <article className="empty-state compact">
@@ -213,58 +235,61 @@ export default async function ProfilePage({
                 )}
               </div>
             </article>
-          </section>
+            </section>
 
-          <aside className="sidebar-column">
-            <section className="panel">
+            <aside className="sidebar-column">
+              <section>
               <div className="section-header">
                 <div>
-                  <h3>Verification details</h3>
-                  <p className="muted">Trust is important in a student network.</p>
+                  <h3>Verification Details</h3>
+                  <p className="muted">Trust and publishing signals styled like the reference screen.</p>
                 </div>
               </div>
-              <div className="list">
-                <div className="list-item">
-                  <div className="mini-avatar">V</div>
+              <div className="verification-list">
+                <article className="verification-item">
+                  <div className="verification-icon">V</div>
                   <div>
                     <strong>University verified</strong>
                     <div className="muted">
                       Account tied to {profile.university.domain} and marked as a valid student identity.
                     </div>
                   </div>
-                </div>
-                <div className="list-item">
-                  <div className="mini-avatar">C</div>
+                  <div className="verification-check">O</div>
+                </article>
+                <article className="verification-item neutral">
+                  <div className="verification-icon">C</div>
                   <div>
                     <strong>Club affiliation</strong>
                     <div className="muted">{profile.user.affiliation}</div>
                   </div>
-                </div>
-                <div className="list-item">
-                  <div className="mini-avatar">P</div>
+                  <div />
+                </article>
+                <article className="verification-item neutral">
+                  <div className="verification-icon">P</div>
                   <div>
                     <strong>Publishing privileges</strong>
                     <div className="muted">
                       Signed-in students can create event posts with cover images, links, and visibility controls.
                     </div>
                   </div>
-                </div>
-                <div className="list-item">
-                  <div className="mini-avatar">L</div>
+                  <div />
+                </article>
+                <article className="verification-item">
+                  <div className="verification-icon">L</div>
                   <div>
                     <strong>Latest event</strong>
-                    <div>
-                      <div className="muted">
-                        {profile.posts[0]
-                          ? `${formatDisplayDate(profile.posts[0].eventDate)} in ${profile.posts[0].location}`
-                          : "No live events yet"}
-                      </div>
+                    <div className="muted">
+                      {profile.posts[0]
+                        ? `${formatDisplayDate(profile.posts[0].eventDate)}`
+                        : "No live events yet"}
                     </div>
                   </div>
-                </div>
+                  <div className="verification-check">O</div>
+                </article>
               </div>
-            </section>
-          </aside>
+              </section>
+            </aside>
+          </div>
         </div>
       </section>
     </main>

@@ -32,36 +32,26 @@ export function EventFeed({
 
   return (
     <section className="feed-column">
-      <article className="composer">
+      <article className="composer feed-lead">
         <div className="section-header">
           <div>
             <h2>Student Event Feed</h2>
-            <p className="muted">
-              A social feed where verified students can post what is happening on campus.
+            <p className="muted feed-lead-copy">
+              A dark, card-first discovery surface inspired by your mockup, while keeping live campus post data underneath.
             </p>
           </div>
-          <span className="pill">{currentUser ? "Signed in" : "Read-only until sign in"}</span>
+          <span className="pill">{currentUser ? "Signed in" : "Explore mode"}</span>
         </div>
-        <div className="composer-box">
-          <strong>{currentUser ? `Posting as ${currentUser.fullName}` : "Create a post"}</strong>
-          <p className="muted">
-            {currentUser
-              ? "Add a title, description, event date, venue, poster image, and RSVP link to publish a real event post."
-              : "Sign in with a student account to publish your own event posts to the shared campus feed."}
-          </p>
-          <div className="action-row">
-            <Link
-              className="primary-btn"
-              href={currentUser ? "/create-post" : "/sign-in?redirectTo=/create-post"}
-            >
-              {currentUser ? "Open event composer" : "Sign in to post"}
-            </Link>
-            {currentUser ? (
-              <Link className="secondary-btn" href="/profile">
-                Go to profile
-              </Link>
-            ) : null}
-          </div>
+        <div className="action-row">
+          <Link
+            className="primary-btn"
+            href={currentUser ? "/create-post" : "/sign-in?redirectTo=/create-post"}
+          >
+            {currentUser ? "Create new event" : "Sign in to post"}
+          </Link>
+          <Link className="secondary-btn" href={currentUser ? "/profile" : "/sign-up"}>
+            {currentUser ? "View profile" : "Create account"}
+          </Link>
         </div>
       </article>
 
@@ -136,15 +126,27 @@ export function EventFeed({
       <div className="post-list">
         {posts.length > 0 ? (
           posts.map((post) => (
-            <article className="post-card" key={post.id}>
-              <Image
-                className="post-cover"
-                src={getRenderableCoverImage(post.coverImage)}
-                alt={post.title}
-                width={1200}
-                height={700}
-                priority={post.id === "post-1"}
-              />
+            <article className="post-card discovery-post" key={post.id}>
+              <div className="post-media-shell">
+                <div className="post-media-head">
+                  <div className="post-media-title">
+                    <h3>
+                      {post.university.name} - {post.title}
+                    </h3>
+                    <span className="post-media-subtitle">{formatDisplayDate(post.eventDate)}</span>
+                  </div>
+                  <span className="event-chip">{post.university.name}</span>
+                </div>
+                <Image
+                  className="post-cover"
+                  src={getRenderableCoverImage(post.coverImage)}
+                  alt={post.title}
+                  width={1200}
+                  height={700}
+                  priority={post.id === "post-1"}
+                />
+              </div>
+
               <div className="post-body">
                 <div className="author-row">
                   <div className="author-meta">
@@ -159,48 +161,31 @@ export function EventFeed({
                   <span className="event-chip">{post.mediaType}</span>
                 </div>
 
-                <h3 className="post-title">{post.title}</h3>
-                <p className="post-copy">{post.description}</p>
-                <div className="action-row" style={{ marginBottom: 18 }}>
-                  <Link className="ghost-link" href={`/events/${post.id}`}>
-                    View event details
-                  </Link>
-                </div>
-
                 <div className="event-row">
                   <div className="event-meta">
-                    <span className="event-chip">{formatDisplayDate(post.eventDate)}</span>
                     <span className="event-chip">{post.location}</span>
+                    <span className="event-chip">{post.category}</span>
                   </div>
                   <div className="metric">
                     {formatCompactNumber(post.goingCount)} going · {formatCompactNumber(post.maybeCount)} maybe
                   </div>
                 </div>
 
-                <div className="divider" />
-
-                <div className="engagement-row">
-                  <div className="meta-row">
-                    <span className="metric">{formatCompactNumber(post.likeCount)} likes</span>
-                    <span className="metric">{formatCompactNumber(post.commentCount)} comments</span>
-                    <span className="metric">{formatCompactNumber(post.shareCount)} shares</span>
-                    <span className="metric">{formatCompactNumber(post.interestedCount)} interested</span>
-                  </div>
-                  <div className="meta-row">
-                    <span className="tag">{post.category}</span>
-                    <span className="tag">{formatVisibilityLabel(post.visibility)}</span>
-                    {post.viewerRsvpStatus ? <span className="tag">RSVP {post.viewerRsvpStatus.toLowerCase()}</span> : null}
-                    {post.rsvpLink ? (
-                      <a className="tag" href={post.rsvpLink} rel="noreferrer" target="_blank">
-                        RSVP
-                      </a>
-                    ) : null}
-                  </div>
+                <div className="discovery-actions">
+                  <Link className="reaction-btn" href={`/events/${post.id}`}>
+                    View details
+                  </Link>
+                  {post.rsvpLink ? (
+                    <a className="primary-btn" href={post.rsvpLink} rel="noreferrer" target="_blank">
+                      RSVP
+                    </a>
+                  ) : null}
                 </div>
+
+                <p className="post-copy">{post.description}</p>
 
                 {currentUser ? (
                   <>
-                    <div className="divider" />
                     <PostQuickActions
                       authorId={post.authorId}
                       currentUserId={currentUser.id}
@@ -247,6 +232,19 @@ export function EventFeed({
                       />
                     </div>
                   </>
+                ) : null}
+
+                {!currentUser ? (
+                  <div className="engagement-row">
+                    <div className="meta-row">
+                      <span className="metric">{formatCompactNumber(post.likeCount)} likes</span>
+                      <span className="metric">{formatCompactNumber(post.commentCount)} comments</span>
+                      <span className="metric">{formatCompactNumber(post.interestedCount)} interested</span>
+                    </div>
+                    <div className="meta-row">
+                      <span className="tag">{formatVisibilityLabel(post.visibility)}</span>
+                    </div>
+                  </div>
                 ) : null}
               </div>
             </article>
