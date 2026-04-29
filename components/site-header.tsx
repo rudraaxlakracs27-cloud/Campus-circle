@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { signOutAction } from "@/app/actions";
 import { getInitials } from "@/lib/store";
 import type { User } from "@/lib/types";
 
 type SiteHeaderProps = {
-  currentUser: User | null;
+  currentUser?: User | null;
 };
 
 export function SiteHeader({ currentUser }: SiteHeaderProps) {
   const pathname = usePathname();
+  const [hydratedUser, setHydratedUser] = useState<User | null | undefined>(currentUser);
   const navItems = [
     { href: "/", label: "Feed", icon: "F", match: (value: string) => value === "/" || value.startsWith("/events") },
     { href: "/create-post", label: "Create", icon: "+", match: (value: string) => value.startsWith("/create-post") },
@@ -19,9 +21,48 @@ export function SiteHeader({ currentUser }: SiteHeaderProps) {
     { href: "/saved", label: "Saved", icon: "S", match: (value: string) => value.startsWith("/saved") },
     { href: "/notifications", label: "Notifications", icon: "N", match: (value: string) => value.startsWith("/notifications") }
   ];
+  const resolvedUser = hydratedUser ?? null;
 
-  const topbarItems = navItems.filter((item) => currentUser || (item.href !== "/saved" && item.href !== "/notifications"));
-  const isAdmin = Boolean(currentUser?.role.toLowerCase().includes("admin"));
+  useEffect(() => {
+    setHydratedUser(currentUser);
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (currentUser !== undefined) {
+      return;
+    }
+
+    let isActive = true;
+
+    async function loadCurrentUser() {
+      try {
+        const response = await fetch("/api/session-user", {
+          cache: "no-store",
+          credentials: "same-origin"
+        });
+
+        if (!response.ok || !isActive) {
+          return;
+        }
+
+        const payload = (await response.json()) as { currentUser: User | null };
+        setHydratedUser(payload.currentUser);
+      } catch {
+        if (isActive) {
+          setHydratedUser(null);
+        }
+      }
+    }
+
+    void loadCurrentUser();
+
+    return () => {
+      isActive = false;
+    };
+  }, [currentUser]);
+
+  const topbarItems = navItems.filter((item) => resolvedUser || (item.href !== "/saved" && item.href !== "/notifications"));
+  const isAdmin = Boolean(resolvedUser?.role.toLowerCase().includes("admin"));
 
   return (
     <div className="app-shell">
@@ -39,7 +80,7 @@ export function SiteHeader({ currentUser }: SiteHeaderProps) {
 
           <nav className="sidebar-nav">
             {navItems.map((item) =>
-              !currentUser && (item.href === "/saved" || item.href === "/notifications") ? null : (
+              !resolvedUser && (item.href === "/saved" || item.href === "/notifications") ? null : (
                 <Link
                   className={`sidebar-link ${item.match(pathname) ? "active" : ""}`}
                   href={item.href}
@@ -89,13 +130,13 @@ export function SiteHeader({ currentUser }: SiteHeaderProps) {
         </div>
 
         <div className="topbar-panel toolbar-user">
-          {currentUser ? (
+          {resolvedUser ? (
             <>
               <div className="session-badge">
-                <span className="mini-avatar">{getInitials(currentUser.fullName)}</span>
+                <span className="mini-avatar">{getInitials(resolvedUser.fullName)}</span>
                 <div>
-                  <strong>{currentUser.fullName}</strong>
-                  <div className="muted">{currentUser.username}</div>
+                  <strong>{resolvedUser.fullName}</strong>
+                  <div className="muted">{resolvedUser.username}</div>
                 </div>
               </div>
               <form action={signOutAction}>

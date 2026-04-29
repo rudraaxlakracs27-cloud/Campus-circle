@@ -4,7 +4,7 @@ import type { HomeStat, User } from "@/lib/types";
 
 type HeroBannerProps = {
   stats: HomeStat[];
-  currentUser: User | null;
+  currentUser?: User | null;
 };
 
 export function HeroBanner({ stats, currentUser }: HeroBannerProps) {

@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import { cache } from "react";
 import { getUserByEmail, syncAuthUserAccount } from "@/lib/store";
+import { hasSupabaseAuthCookies } from "@/lib/supabase/auth-cookies";
 import { createClient } from "@/lib/supabase/server";
 
 function getClaimEmail(claims: Record<string, unknown> | undefined) {
@@ -8,6 +10,12 @@ function getClaimEmail(claims: Record<string, unknown> | undefined) {
 }
 
 export const getSessionUser = cache(async () => {
+  const cookieStore = await cookies();
+
+  if (!hasSupabaseAuthCookies(cookieStore.getAll())) {
+    return null;
+  }
+
   const supabase = await createClient();
   const claimsResult = await supabase.auth.getClaims();
   const email = getClaimEmail((claimsResult.data?.claims ?? undefined) as Record<string, unknown> | undefined);

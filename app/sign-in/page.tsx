@@ -3,19 +3,18 @@ import { signInAction } from "@/app/actions";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { SiteHeader } from "@/components/site-header";
 import { ToastTrigger } from "@/components/toast-trigger";
-import { getSessionUser } from "@/lib/session";
 
 export default async function SignInPage({
   searchParams
 }: {
   searchParams: Promise<{ redirectTo?: string; error?: string; message?: string }>;
 }) {
-  const [currentUser, params] = await Promise.all([getSessionUser(), searchParams]);
+  const params = await searchParams;
 
   return (
     <main className="page-shell">
       <section className="hero">
-        <SiteHeader currentUser={currentUser} />
+        <SiteHeader />
         <section className="feed-column">
           <article className="section-card">
             <span className="eyebrow">Supabase Auth sign in</span>

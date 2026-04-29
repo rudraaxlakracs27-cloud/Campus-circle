@@ -2,7 +2,6 @@ import Link from "next/link";
 import { signUpAction } from "@/app/actions";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { SiteHeader } from "@/components/site-header";
-import { getSessionUser } from "@/lib/session";
 import { getUniversities } from "@/lib/store";
 
 export default async function SignUpPage({
@@ -10,16 +9,12 @@ export default async function SignUpPage({
 }: {
   searchParams: Promise<{ error?: string; redirectTo?: string; details?: string }>;
 }) {
-  const [currentUser, universities, params] = await Promise.all([
-    getSessionUser(),
-    getUniversities(),
-    searchParams
-  ]);
+  const [universities, params] = await Promise.all([getUniversities(), searchParams]);
 
   return (
     <main className="page-shell">
       <section className="hero">
-        <SiteHeader currentUser={currentUser} />
+        <SiteHeader />
         <section className="feed-column">
           <article className="section-card">
             <span className="eyebrow">Create your student account</span>

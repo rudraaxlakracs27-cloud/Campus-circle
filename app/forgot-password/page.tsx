@@ -2,19 +2,18 @@ import Link from "next/link";
 import { requestPasswordResetAction } from "@/app/actions";
 import { FeedbackBanner } from "@/components/feedback-banner";
 import { SiteHeader } from "@/components/site-header";
-import { getSessionUser } from "@/lib/session";
 
 export default async function ForgotPasswordPage({
   searchParams
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const [currentUser, params] = await Promise.all([getSessionUser(), searchParams]);
+  const params = await searchParams;
 
   return (
     <main className="page-shell">
       <section className="hero">
-        <SiteHeader currentUser={currentUser} />
+        <SiteHeader />
         <div className="content-grid">
           <section className="feed-column">
             <article className="section-card">
