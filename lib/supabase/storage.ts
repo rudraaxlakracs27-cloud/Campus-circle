@@ -47,6 +47,15 @@ export async function uploadEventCoverImage(file: File, userId: string) {
   });
 
   if (error) {
+    console.error("[storage] Failed to upload event cover image.", {
+      bucket,
+      contentType: file.type,
+      fileName: file.name,
+      filePath,
+      size: file.size,
+      userId,
+      error
+    });
     return "storage-upload-failed" as const;
   }
 

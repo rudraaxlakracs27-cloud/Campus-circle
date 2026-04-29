@@ -182,6 +182,9 @@ function mapComment(comment: {
     followers: number;
     affiliation: string;
     isVerified: boolean;
+    followedBy?: Array<{
+      id: string;
+    }>;
   };
   replies?: Array<{
     id: string;
@@ -253,6 +256,9 @@ function buildFeedPost(post: {
     followers: number;
     affiliation: string;
     isVerified: boolean;
+    followedBy?: Array<{
+      id: string;
+    }>;
   };
   university: {
     id: string;
@@ -262,7 +268,7 @@ function buildFeedPost(post: {
     domain: string;
     summary: string;
   };
-  comments: Array<{
+  comments?: Array<{
     id: string;
     body: string;
     createdAt: Date;
@@ -303,26 +309,40 @@ function buildFeedPost(post: {
   interactions?: Array<{
     type: string;
   }>;
+  saves?: Array<{
+    id: string;
+  }>;
+  rsvps?: Array<{
+    status: string;
+  }>;
   viewerHasSaved?: boolean;
   viewerFollowsAuthor?: boolean;
   viewerRsvpStatus?: RsvpStatus;
   goingCount?: number;
   maybeCount?: number;
 }): FeedPost {
+  const viewerRsvpStatus =
+    post.viewerRsvpStatus ??
+    (Array.isArray(post.rsvps) && post.rsvps[0]?.status
+      ? (post.rsvps[0].status as RsvpStatus)
+      : undefined);
+
   return {
     ...mapPost(post),
     author: mapUser(post.author),
     university: mapUniversity(post.university),
-    comments: post.comments.map(mapComment),
+    comments: Array.isArray(post.comments) ? post.comments.map(mapComment) : [],
     viewerHasLiked: Array.isArray(post.interactions)
       ? post.interactions.some((interaction) => interaction.type === "LIKE")
       : false,
     viewerIsInterested: Array.isArray(post.interactions)
       ? post.interactions.some((interaction) => interaction.type === "INTEREST")
       : false,
-    viewerHasSaved: post.viewerHasSaved ?? false,
-    viewerFollowsAuthor: post.viewerFollowsAuthor ?? false,
-    viewerRsvpStatus: post.viewerRsvpStatus
+    viewerHasSaved: post.viewerHasSaved ?? (Array.isArray(post.saves) ? post.saves.length > 0 : false),
+    viewerFollowsAuthor:
+      post.viewerFollowsAuthor ??
+      (Array.isArray(post.author.followedBy) ? post.author.followedBy.length > 0 : false),
+    viewerRsvpStatus
   };
 }
 
@@ -392,62 +412,6 @@ async function getLegacyCompatibleFeedPosts(
       viewerRsvpStatus: undefined
     })
   );
-}
-
-async function attachViewerSocialState(posts: FeedPost[], viewerId?: string | null) {
-  if (!viewerId || posts.length === 0) {
-    return posts;
-  }
-
-  const [savedPosts, follows, rsvps] = await Promise.all([
-    prisma.savedPost.findMany({
-      where: {
-        userId: viewerId,
-        postId: {
-          in: posts.map((post) => post.id)
-        }
-      },
-      select: {
-        postId: true
-      }
-    }),
-    prisma.follow.findMany({
-      where: {
-        followerId: viewerId,
-        followingId: {
-          in: posts
-            .map((post) => post.authorId)
-            .filter((authorId) => authorId !== viewerId)
-        }
-      },
-      select: {
-        followingId: true
-      }
-    }),
-    prisma.eventRsvp.findMany({
-      where: {
-        userId: viewerId,
-        postId: {
-          in: posts.map((post) => post.id)
-        }
-      },
-      select: {
-        postId: true,
-        status: true
-      }
-    })
-  ]);
-
-  const savedPostIds = new Set(savedPosts.map((item) => item.postId));
-  const followedUserIds = new Set(follows.map((item) => item.followingId));
-  const rsvpStatusByPostId = new Map(rsvps.map((item) => [item.postId, item.status as RsvpStatus]));
-
-  return posts.map((post) => ({
-    ...post,
-    viewerHasSaved: savedPostIds.has(post.id),
-    viewerFollowsAuthor: followedUserIds.has(post.authorId),
-    viewerRsvpStatus: rsvpStatusByPostId.get(post.id)
-  }));
 }
 
 function scoreFeedPost(input: {
@@ -590,27 +554,21 @@ async function computeFeedPosts(
     const posts = await prisma.eventPost.findMany({
       where,
       include: {
-        author: true,
-        university: true,
-        comments: {
-          where: {
-            parentId: null
-          },
-          include: {
-            author: true,
-            replies: {
+        author: viewer?.id
+          ? {
               include: {
-                author: true
-              },
-              orderBy: {
-                createdAt: "asc"
+                followedBy: {
+                  where: {
+                    followerId: viewer.id
+                  },
+                  select: {
+                    id: true
+                  }
+                }
               }
             }
-          },
-          orderBy: {
-            createdAt: "asc"
-          }
-        },
+          : true,
+        university: true,
         interactions: viewer?.id
           ? {
               where: {
@@ -618,6 +576,26 @@ async function computeFeedPosts(
               },
               select: {
                 type: true
+              }
+            }
+          : false,
+        saves: viewer?.id
+          ? {
+              where: {
+                userId: viewer.id
+              },
+              select: {
+                id: true
+              }
+            }
+          : false,
+        rsvps: viewer?.id
+          ? {
+              where: {
+                userId: viewer.id
+              },
+              select: {
+                status: true
               }
             }
           : false
@@ -656,17 +634,15 @@ async function computeFeedPosts(
       rsvpCountMap.set(item.postId, existing);
     }
 
-    const hydratedPosts = await attachViewerSocialState(
-      posts.map((post) =>
-        buildFeedPost({
-          ...post,
-          ...(rsvpCountMap.get(post.id) ?? {
-            goingCount: 0,
-            maybeCount: 0
-          })
+    const hydratedPosts = posts.map((post) =>
+      buildFeedPost({
+        ...post,
+        comments: [],
+        ...(rsvpCountMap.get(post.id) ?? {
+          goingCount: 0,
+          maybeCount: 0
         })
-      ),
-      viewer?.id
+      })
     );
 
     if (!viewer) {
@@ -751,19 +727,24 @@ function normalizeUsername(value: string) {
 
 async function getAvailableUsername(baseValue: string) {
   const base = normalizeUsername(baseValue);
+  const takenUsernames = new Set(
+    (
+      await prisma.user.findMany({
+        where: {
+          username: {
+            startsWith: `@${base}`
+          }
+        },
+        select: {
+          username: true
+        }
+      })
+    ).map((user) => user.username)
+  );
 
   for (let index = 0; index < 25; index += 1) {
     const candidate = index === 0 ? `@${base}` : `@${base}${index + 1}`;
-    const existing = await prisma.user.findUnique({
-      where: {
-        username: candidate
-      },
-      select: {
-        id: true
-      }
-    });
-
-    if (!existing) {
+    if (!takenUsernames.has(candidate)) {
       return candidate;
     }
   }

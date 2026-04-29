@@ -1,7 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { CommentComposer } from "@/components/comment-composer";
-import { CommentThread } from "@/components/comment-thread";
 import { PostQuickActions } from "@/components/post-quick-actions";
 import { getRenderableCoverImage } from "@/lib/media";
 import {
@@ -27,8 +25,6 @@ export function EventFeed({
   categories,
   filters
 }: EventFeedProps) {
-  const getMessageCount = (post: FeedPost) =>
-    post.comments.reduce((sum, comment) => sum + 1 + comment.replies.length, 0);
   const activeFilterCount = [
     filters.q,
     filters.university,
@@ -216,33 +212,17 @@ export function EventFeed({
                     />
 
                     <div className="divider" />
-                    <div className="comment-section">
-                      <div className="section-header" style={{ marginBottom: 0 }}>
-                        <strong>Student comments</strong>
-                        <span className="pill">{getMessageCount(post)} messages</span>
+                    <div className="engagement-row">
+                      <div className="meta-row">
+                        <span className="metric">{formatCompactNumber(post.likeCount)} likes</span>
+                        <span className="metric">{formatCompactNumber(post.commentCount)} comments</span>
+                        <span className="metric">{formatCompactNumber(post.interestedCount)} interested</span>
                       </div>
-                      <div className="comment-list">
-                        {post.comments.length > 0 ? (
-                          <CommentThread
-                            comments={post.comments}
-                            compact
-                            currentUserId={currentUser.id}
-                            postId={post.id}
-                          />
-                        ) : (
-                          <article className="empty-state compact">
-                            <strong>No comments yet</strong>
-                            <p>Start the conversation for this event and help other students decide to join.</p>
-                          </article>
-                        )}
+                      <div className="meta-row">
+                        <Link className="secondary-btn" href={`/events/${post.id}`}>
+                          Open discussion
+                        </Link>
                       </div>
-
-                      <CommentComposer
-                        helper="Keep it useful: timing, tickets, dress code, lineup, or questions."
-                        placeholder="Ask a question, tag a friend, or hype up the event."
-                        postId={post.id}
-                        rows={3}
-                      />
                     </div>
                   </>
                 ) : null}
