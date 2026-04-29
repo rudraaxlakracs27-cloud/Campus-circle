@@ -13,14 +13,18 @@ function getTextValue(formData: FormData, key: string) {
 }
 
 function redirectWithError(request: Request, error: string) {
-  return NextResponse.redirect(new URL(`/create-post?error=${error}`, request.url));
+  return NextResponse.redirect(new URL(`/create-post?error=${error}`, request.url), {
+    status: 303
+  });
 }
 
 export async function POST(request: Request) {
   const currentUser = await getSessionUser();
 
   if (!currentUser) {
-    return NextResponse.redirect(new URL("/sign-in?redirectTo=/create-post", request.url));
+    return NextResponse.redirect(new URL("/sign-in?redirectTo=/create-post", request.url), {
+      status: 303
+    });
   }
 
   const rateLimit = checkRateLimit({
@@ -97,5 +101,7 @@ export async function POST(request: Request) {
   revalidatePath("/");
   revalidatePath("/profile");
 
-  return NextResponse.redirect(new URL("/?created=1", request.url));
+  return NextResponse.redirect(new URL("/?created=1", request.url), {
+    status: 303
+  });
 }

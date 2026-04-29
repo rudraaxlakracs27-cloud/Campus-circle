@@ -13,7 +13,9 @@ function getTextValue(formData: FormData, key: string) {
 }
 
 function redirectWithError(request: Request, postId: string, error: string) {
-  return NextResponse.redirect(new URL(`/events/${postId}/edit?error=${error}`, request.url));
+  return NextResponse.redirect(new URL(`/events/${postId}/edit?error=${error}`, request.url), {
+    status: 303
+  });
 }
 
 export async function POST(
@@ -26,7 +28,9 @@ export async function POST(
   const { postId } = await context.params;
 
   if (!currentUser) {
-    return NextResponse.redirect(new URL(`/sign-in?redirectTo=/events/${postId}/edit`, request.url));
+    return NextResponse.redirect(new URL(`/sign-in?redirectTo=/events/${postId}/edit`, request.url), {
+      status: 303
+    });
   }
 
   const rateLimit = checkRateLimit({
@@ -42,7 +46,9 @@ export async function POST(
   const existingPost = await getOwnedPostById(postId, currentUser.id);
 
   if (!existingPost) {
-    return NextResponse.redirect(new URL(`/events/${postId}`, request.url));
+    return NextResponse.redirect(new URL(`/events/${postId}`, request.url), {
+      status: 303
+    });
   }
 
   const formData = await request.formData();
@@ -111,5 +117,7 @@ export async function POST(
   revalidatePath("/profile");
   revalidatePath(`/events/${postId}`);
 
-  return NextResponse.redirect(new URL(`/events/${postId}?updated=1`, request.url));
+  return NextResponse.redirect(new URL(`/events/${postId}?updated=1`, request.url), {
+    status: 303
+  });
 }
