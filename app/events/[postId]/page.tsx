@@ -43,15 +43,25 @@ export default async function EventDetailPage({
       <section className="hero">
         <SiteHeader currentUser={currentUser} />
         <div className="detail-grid">
-          <article className="post-card">
-            <Image
-              alt={post.title}
-              className="post-cover"
-              height={720}
-              priority
-              src={getRenderableCoverImage(post.coverImage)}
-              width={1400}
-            />
+          <article className="post-card detail-hero-card">
+            <div className="post-media-shell detail-cover-shell">
+              <div className="post-media-head detail-cover-head">
+                <div className="post-media-title">
+                  <h3>{post.university.name}</h3>
+                  <span className="post-media-subtitle">{formatDisplayDate(post.eventDate)}</span>
+                </div>
+                <span className="event-chip">{post.mediaType}</span>
+              </div>
+              <Image
+                alt={post.title}
+                className="post-cover"
+                height={720}
+                priority
+                sizes="(max-width: 720px) 100vw, (max-width: 1180px) 92vw, 980px"
+                src={getRenderableCoverImage(post.coverImage)}
+                width={1400}
+              />
+            </div>
             <div className="post-body">
               {query.updated ? (
                 <ToastTrigger
@@ -92,6 +102,12 @@ export default async function EventDetailPage({
                 <span className="tag">{post.category}</span>
                 <span className="tag">{formatVisibilityLabel(post.visibility)}</span>
                 <span className="tag">{post.university.name}</span>
+              </div>
+
+              <div className="detail-summary-bar">
+                <span className="mini-metric-pill">{formatCompactNumber(post.likeCount)} likes</span>
+                <span className="mini-metric-pill">{formatCompactNumber(post.commentCount)} comments</span>
+                <span className="mini-metric-pill">{formatCompactNumber(post.interestedCount)} interested</span>
               </div>
 
               <div className="divider" />
@@ -161,7 +177,7 @@ export default async function EventDetailPage({
           </article>
 
           <aside className="sidebar-column">
-            <section className="panel">
+            <section className="panel detail-sidebar-sticky">
               <div className="section-header">
                 <div>
                   <h3>Community activity</h3>

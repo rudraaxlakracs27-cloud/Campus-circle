@@ -29,6 +29,14 @@ export function EventFeed({
 }: EventFeedProps) {
   const getMessageCount = (post: FeedPost) =>
     post.comments.reduce((sum, comment) => sum + 1 + comment.replies.length, 0);
+  const activeFilterCount = [
+    filters.q,
+    filters.university,
+    filters.category,
+    filters.dateFrom,
+    filters.dateTo,
+    filters.datePreset
+  ].filter(Boolean).length;
 
   return (
     <section className="feed-column">
@@ -40,7 +48,11 @@ export function EventFeed({
               A dark, card-first discovery surface inspired by your mockup, while keeping live campus post data underneath.
             </p>
           </div>
-          <span className="pill">{currentUser ? "Signed in" : "Explore mode"}</span>
+          <div className="feed-inline-stats">
+            <span className="pill">{posts.length} events</span>
+            <span className="pill">{activeFilterCount > 0 ? `${activeFilterCount} filters on` : "Explore mode"}</span>
+            {currentUser ? <span className="pill">{currentUser.universityId}</span> : null}
+          </div>
         </div>
         <div className="action-row">
           <Link
@@ -143,6 +155,7 @@ export function EventFeed({
                   alt={post.title}
                   width={1200}
                   height={700}
+                  sizes="(max-width: 720px) 100vw, (max-width: 1180px) 92vw, 960px"
                   priority={post.id === "post-1"}
                 />
               </div>

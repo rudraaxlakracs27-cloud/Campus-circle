@@ -141,6 +141,7 @@ export default async function ProfilePage({
                       <Image
                         alt={post.title}
                         height={420}
+                        sizes="(max-width: 720px) 100vw, (max-width: 1180px) 48vw, 420px"
                         src={getRenderableCoverImage(post.coverImage)}
                         width={680}
                       />

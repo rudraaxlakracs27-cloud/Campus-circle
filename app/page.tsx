@@ -33,7 +33,7 @@ export default async function Home({
   const [universities, categories, posts, stats] = await Promise.all([
     getUniversities(),
     getFeedCategories(),
-    getFeedPosts(currentUser?.id, filters),
+    getFeedPosts(currentUser, filters),
     getHomeStats()
   ]);
 

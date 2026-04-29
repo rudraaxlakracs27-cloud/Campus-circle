@@ -68,7 +68,12 @@ export function PostQuickActions({
     maybeCount
   });
   const [pendingKey, setPendingKey] = useState<string | null>(null);
-  function runAction(key: string, optimisticUpdate: () => void, rollback: () => void, action: () => Promise<{ ok: boolean; error?: string }>) {
+  function runAction(
+    key: string,
+    optimisticUpdate: () => void,
+    rollback: () => void,
+    action: () => Promise<{ ok: boolean; error?: string }>
+  ) {
     optimisticUpdate();
     setPendingKey(key);
 
@@ -111,11 +116,14 @@ export function PostQuickActions({
             runAction(
               "like",
               () => {
-                setLiked((value) => !value);
-                setCounts((current) => ({
-                  ...current,
-                  likeCount: current.likeCount + (liked ? -1 : 1)
-                }));
+                setLiked((value) => {
+                  const nextValue = !value;
+                  setCounts((current) => ({
+                    ...current,
+                    likeCount: current.likeCount + (nextValue ? 1 : -1)
+                  }));
+                  return nextValue;
+                });
               },
               () => {
                 setLiked(viewerHasLiked);
@@ -138,11 +146,14 @@ export function PostQuickActions({
             runAction(
               "interest",
               () => {
-                setInterested((value) => !value);
-                setCounts((current) => ({
-                  ...current,
-                  interestedCount: current.interestedCount + (interested ? -1 : 1)
-                }));
+                setInterested((value) => {
+                  const nextValue = !value;
+                  setCounts((current) => ({
+                    ...current,
+                    interestedCount: current.interestedCount + (nextValue ? 1 : -1)
+                  }));
+                  return nextValue;
+                });
               },
               () => {
                 setInterested(viewerIsInterested);
@@ -258,7 +269,9 @@ export function PostQuickActions({
           onClick={() =>
             runAction(
               "save",
-              () => setSaved((value) => !value),
+              () => {
+                setSaved((value) => !value);
+              },
               () => setSaved(viewerHasSaved),
               () => toggleSavedPostInlineAction({ postId })
             )
@@ -274,7 +287,9 @@ export function PostQuickActions({
             onClick={() =>
               runAction(
                 "follow",
-                () => setFollowing((value) => !value),
+                () => {
+                  setFollowing((value) => !value);
+                },
                 () => setFollowing(viewerFollowsAuthor),
                 () => toggleFollowUserInlineAction({ followingId: authorId })
               )

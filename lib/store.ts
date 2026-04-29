@@ -1,5 +1,6 @@
 import { unstable_noStore as noStore } from "next/cache";
 import type { User as SupabaseAuthUser } from "@supabase/supabase-js";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type {
   EventPost,
@@ -18,6 +19,50 @@ import type {
   University,
   User
 } from "@/lib/types";
+
+type FeedViewerContext = Pick<User, "id" | "universityId" | "interests">;
+
+function parseInterests(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function buildFeedWhereClause(input: {
+  filters: FeedFilters;
+  dateFrom?: Date;
+  dateTo?: Date;
+}) {
+  const { filters, dateFrom, dateTo } = input;
+
+  return {
+    ...(filters.q
+      ? {
+          OR: [
+            { title: { contains: filters.q, mode: "insensitive" as const } },
+            { description: { contains: filters.q, mode: "insensitive" as const } },
+            { location: { contains: filters.q, mode: "insensitive" as const } },
+            { category: { contains: filters.q, mode: "insensitive" as const } },
+            { author: { fullName: { contains: filters.q, mode: "insensitive" as const } } },
+            { university: { name: { contains: filters.q, mode: "insensitive" as const } } }
+          ]
+        }
+      : {}),
+    ...(filters.university ? { universityId: filters.university } : {}),
+    ...(filters.category ? { category: filters.category } : {}),
+    ...((dateFrom || dateTo)
+      ? {
+          eventDate: {
+            ...(dateFrom ? { gte: dateFrom } : {}),
+            ...(dateTo ? { lte: dateTo } : {})
+          }
+        }
+      : {})
+  };
+}
 
 function mapUniversity(university: {
   id: string;
@@ -46,7 +91,7 @@ function mapUser(user: {
 }): User {
   return {
     ...user,
-    interests: JSON.parse(user.interests) as string[]
+    interests: parseInterests(user.interests)
   };
 }
 
@@ -243,6 +288,74 @@ function buildFeedPost(post: {
   };
 }
 
+function isSchemaDriftError(error: unknown) {
+  if (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2021" || error.code === "P2022")
+  ) {
+    return true;
+  }
+
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  return (
+    message.includes("does not exist in the current database") ||
+    message.includes("column") && message.includes("does not exist") ||
+    message.includes("relation") && message.includes("does not exist")
+  );
+}
+
+async function getLegacyCompatibleFeedPosts(
+  viewerId?: string | null,
+  filters: FeedFilters = {}
+): Promise<FeedPost[]> {
+  const where = buildFeedWhereClause({ filters });
+
+  const posts = await prisma.eventPost.findMany({
+    where,
+    include: {
+      author: true,
+      university: true,
+      comments: {
+        include: {
+          author: true
+        },
+        orderBy: {
+          createdAt: "asc"
+        }
+      },
+      interactions: viewerId
+        ? {
+            where: {
+              userId: viewerId
+            },
+            select: {
+              type: true
+            }
+          }
+        : false
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+
+  return posts.map((post) =>
+    buildFeedPost({
+      ...post,
+      comments: post.comments.map((comment) => ({
+        ...comment,
+        parentId: null,
+        replies: []
+      })),
+      goingCount: 0,
+      maybeCount: 0,
+      viewerHasSaved: false,
+      viewerFollowsAuthor: false,
+      viewerRsvpStatus: undefined
+    })
+  );
+}
+
 async function attachViewerSocialState(posts: FeedPost[], viewerId?: string | null) {
   if (!viewerId || posts.length === 0) {
     return posts;
@@ -368,7 +481,7 @@ async function rankFeedPosts(posts: FeedPost[], viewerId?: string | null) {
     return posts;
   }
 
-  const viewer = viewerId
+  const viewerContext = viewerId
     ? await prisma.user.findUnique({
         where: {
           id: viewerId
@@ -377,14 +490,14 @@ async function rankFeedPosts(posts: FeedPost[], viewerId?: string | null) {
           universityId: true,
           interests: true
         }
-      })
-    : null;
-
-  const viewerContext = viewer
-    ? {
-        universityId: viewer.universityId,
-        interests: JSON.parse(viewer.interests) as string[]
-      }
+      }).then((viewer) =>
+        viewer
+          ? {
+              universityId: viewer.universityId,
+              interests: parseInterests(viewer.interests)
+            }
+          : null
+      )
     : null;
 
   return [...posts].sort((left, right) => {
@@ -401,7 +514,7 @@ async function rankFeedPosts(posts: FeedPost[], viewerId?: string | null) {
 }
 
 export async function getFeedPosts(
-  viewerId?: string | null,
+  viewer?: FeedViewerContext | null,
   filters: FeedFilters = {}
 ): Promise<FeedPost[]> {
   noStore();
@@ -434,114 +547,114 @@ export async function getFeedPosts(
     dateTo = monthEnd;
   }
 
-  const where = {
-    ...(filters.q
-      ? {
-          OR: [
-            { title: { contains: filters.q, mode: "insensitive" as const } },
-            { description: { contains: filters.q, mode: "insensitive" as const } },
-            { location: { contains: filters.q, mode: "insensitive" as const } },
-            { category: { contains: filters.q, mode: "insensitive" as const } },
-            { author: { fullName: { contains: filters.q, mode: "insensitive" as const } } },
-            { university: { name: { contains: filters.q, mode: "insensitive" as const } } }
-          ]
-        }
-      : {}),
-    ...(filters.university ? { universityId: filters.university } : {}),
-    ...(filters.category ? { category: filters.category } : {}),
-    ...((dateFrom || dateTo)
-      ? {
-          eventDate: {
-            ...(dateFrom ? { gte: dateFrom } : {}),
-            ...(dateTo ? { lte: dateTo } : {})
-          }
-        }
-      : {})
-  };
+  const where = buildFeedWhereClause({ filters, dateFrom, dateTo });
 
-  const posts = await prisma.eventPost.findMany({
-    where,
-    include: {
-      author: true,
-      university: true,
-      comments: {
-        where: {
-          parentId: null
-        },
-        include: {
-          author: true,
-          replies: {
-            include: {
-              author: true
-            },
-            orderBy: {
-              createdAt: "asc"
+  try {
+    const posts = await prisma.eventPost.findMany({
+      where,
+      include: {
+        author: true,
+        university: true,
+        comments: {
+          where: {
+            parentId: null
+          },
+          include: {
+            author: true,
+            replies: {
+              include: {
+                author: true
+              },
+              orderBy: {
+                createdAt: "asc"
+              }
             }
+          },
+          orderBy: {
+            createdAt: "asc"
           }
         },
-        orderBy: {
-          createdAt: "asc"
+        interactions: viewer?.id
+          ? {
+              where: {
+                userId: viewer.id
+              },
+              select: {
+                type: true
+              }
+            }
+          : false
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+    const rsvpCounts = await prisma.eventRsvp.groupBy({
+      by: ["postId", "status"],
+      where: {
+        postId: {
+          in: posts.map((post) => post.id)
         }
       },
-      interactions: viewerId
-        ? {
-            where: {
-              userId: viewerId
-            },
-            select: {
-              type: true
-            }
-          }
-        : false
-    },
-    orderBy: {
-      createdAt: "desc"
-    }
-  });
-  const rsvpCounts = await prisma.eventRsvp.groupBy({
-    by: ["postId", "status"],
-    where: {
-      postId: {
-        in: posts.map((post) => post.id)
+      _count: {
+        _all: true
       }
-    },
-    _count: {
-      _all: true
+    });
+    const rsvpCountMap = new Map<string, { goingCount: number; maybeCount: number }>();
+
+    for (const item of rsvpCounts) {
+      const existing = rsvpCountMap.get(item.postId) ?? {
+        goingCount: 0,
+        maybeCount: 0
+      };
+
+      if (item.status === "GOING") {
+        existing.goingCount = item._count._all;
+      }
+
+      if (item.status === "MAYBE") {
+        existing.maybeCount = item._count._all;
+      }
+
+      rsvpCountMap.set(item.postId, existing);
     }
-  });
-  const rsvpCountMap = new Map<string, { goingCount: number; maybeCount: number }>();
 
-  for (const item of rsvpCounts) {
-    const existing = rsvpCountMap.get(item.postId) ?? {
-      goingCount: 0,
-      maybeCount: 0
-    };
-
-    if (item.status === "GOING") {
-      existing.goingCount = item._count._all;
-    }
-
-    if (item.status === "MAYBE") {
-      existing.maybeCount = item._count._all;
-    }
-
-    rsvpCountMap.set(item.postId, existing);
-  }
-
-  const hydratedPosts = await attachViewerSocialState(
-    posts.map((post) =>
-      buildFeedPost({
-        ...post,
-        ...(rsvpCountMap.get(post.id) ?? {
-          goingCount: 0,
-          maybeCount: 0
+    const hydratedPosts = await attachViewerSocialState(
+      posts.map((post) =>
+        buildFeedPost({
+          ...post,
+          ...(rsvpCountMap.get(post.id) ?? {
+            goingCount: 0,
+            maybeCount: 0
+          })
         })
-      })
-    ),
-    viewerId
-  );
+      ),
+      viewer?.id
+    );
 
-  return rankFeedPosts(hydratedPosts, viewerId);
+    if (!viewer) {
+      return rankFeedPosts(hydratedPosts, null);
+    }
+
+    return [...hydratedPosts].sort((left, right) => {
+      const scoreDelta =
+        scoreFeedPost({ post: right, viewer }) -
+        scoreFeedPost({ post: left, viewer });
+
+      if (scoreDelta !== 0) {
+        return scoreDelta;
+      }
+
+      return new Date(left.eventDate).getTime() - new Date(right.eventDate).getTime();
+    });
+  } catch (error) {
+    if (!isSchemaDriftError(error)) {
+      throw error;
+    }
+
+    console.error("[feed] Falling back to legacy-compatible feed query.", error);
+    return getLegacyCompatibleFeedPosts(viewer?.id, filters);
+  }
 }
 
 export async function getUserById(userId: string) {
@@ -810,18 +923,20 @@ export async function getUserFeedSummary(userId: string) {
 
 export async function getHomeStats(): Promise<HomeStat[]> {
   noStore();
-  const [universityCount, posts] = await Promise.all([
+  const today = new Date();
+  const [universityCount, upcomingPostsCount, mediaTypeGroups] = await Promise.all([
     prisma.university.count(),
-    prisma.eventPost.findMany({
-      select: {
-        mediaType: true,
-        eventDate: true
+    prisma.eventPost.count({
+      where: {
+        eventDate: {
+          gte: today
+        }
       }
+    }),
+    prisma.eventPost.groupBy({
+      by: ["mediaType"]
     })
   ]);
-
-  const mediaTypes = new Set(posts.map((post) => post.mediaType));
-  const upcomingPosts = posts.filter((post) => post.eventDate >= new Date("2026-03-29"));
 
   return [
     {
@@ -831,12 +946,12 @@ export async function getHomeStats(): Promise<HomeStat[]> {
     },
     {
       label: "Upcoming events",
-      value: String(upcomingPosts.length),
+      value: String(upcomingPostsCount),
       detail: "Students can browse events across their own campus and other universities."
     },
     {
       label: "Media formats tracked",
-      value: String(mediaTypes.size),
+      value: String(mediaTypeGroups.length),
       detail: "Photos, videos, posters, brochures, reels, and registration links."
     }
   ];
