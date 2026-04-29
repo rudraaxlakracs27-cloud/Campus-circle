@@ -1,7 +1,20 @@
 const DEFAULT_COVER_IMAGE =
   "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=1200&q=80";
 
-const ALLOWED_REMOTE_IMAGE_HOSTS = new Set(["images.unsplash.com", "techcrunch.com", "www.techcrunch.com"]);
+function getAllowedRemoteImageHosts() {
+  const hosts = new Set(["images.unsplash.com", "techcrunch.com", "www.techcrunch.com"]);
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+
+  if (supabaseUrl) {
+    try {
+      hosts.add(new URL(supabaseUrl).hostname);
+    } catch {
+      // Ignore malformed env values and fall back to the base allowlist.
+    }
+  }
+
+  return hosts;
+}
 
 function isLocalMediaPath(value: string) {
   return value.startsWith("/");
@@ -27,7 +40,7 @@ export function isRenderableCoverImage(value: string) {
       return false;
     }
 
-    if (!ALLOWED_REMOTE_IMAGE_HOSTS.has(url.hostname)) {
+    if (!getAllowedRemoteImageHosts().has(url.hostname)) {
       return false;
     }
 
