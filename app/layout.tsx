@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { ToastProvider } from "@/components/toast-provider";
 import "./globals.css";
 
+export const preferredRegion = "sin1";
+
 export const metadata: Metadata = {
   title: "Campus Circles",
   description:

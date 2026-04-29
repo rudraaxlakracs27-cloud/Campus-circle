@@ -1,8 +1,27 @@
-import { syncAuthUserAccount } from "@/lib/store";
+import { cache } from "react";
+import { getUserByEmail, syncAuthUserAccount } from "@/lib/store";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getSessionUser() {
+function getClaimEmail(claims: Record<string, unknown> | undefined) {
+  const email = claims?.email;
+  return typeof email === "string" && email ? email.toLowerCase() : null;
+}
+
+export const getSessionUser = cache(async () => {
   const supabase = await createClient();
+  const claimsResult = await supabase.auth.getClaims();
+  const email = getClaimEmail((claimsResult.data?.claims ?? undefined) as Record<string, unknown> | undefined);
+
+  if (!email) {
+    return null;
+  }
+
+  const existingUser = await getUserByEmail(email);
+
+  if (existingUser) {
+    return existingUser;
+  }
+
   const {
     data: { user }
   } = await supabase.auth.getUser();
@@ -12,7 +31,7 @@ export async function getSessionUser() {
   }
 
   return syncAuthUserAccount(user);
-}
+});
 
 export async function setSessionUser(userId: string) {
   return userId;
