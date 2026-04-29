@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { signOutAction } from "@/app/actions";
 import { getInitials } from "@/lib/store";
 import type { User } from "@/lib/types";
 
@@ -139,7 +138,7 @@ export function SiteHeader({ currentUser }: SiteHeaderProps) {
                   <div className="muted">{resolvedUser.username}</div>
                 </div>
               </div>
-              <form action={signOutAction}>
+              <form action="/sign-out" method="post">
                 <button className="toolbar-button" type="submit">
                   Sign out
                 </button>
