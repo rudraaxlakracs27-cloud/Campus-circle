@@ -16,8 +16,19 @@ export default async function CreatePostPage({
     redirect("/sign-in?redirectTo=/create-post");
   }
 
-  const universities = await getUniversities();
-  const university = universities.find((item) => item.id === currentUser.universityId);
+  let universityName = currentUser.universityId;
+
+  try {
+    const universities = await getUniversities();
+    const university = universities.find((item) => item.id === currentUser.universityId);
+    universityName = university?.name ?? currentUser.universityId;
+  } catch (error) {
+    console.error("[create-post] Failed to load universities for composer page.", {
+      userId: currentUser.id,
+      universityId: currentUser.universityId,
+      error
+    });
+  }
 
   return (
     <main className="page-shell">
@@ -28,7 +39,7 @@ export default async function CreatePostPage({
             <span className="eyebrow">Creator workspace</span>
             <h1 style={{ maxWidth: "12ch", margin: "12px 0 10px" }}>Create New Event Post</h1>
             <p className="hero-copy">
-              You are publishing as {currentUser.fullName} for {university?.name}. This flow now mirrors your dark glass event-composer reference while keeping the real submission pipeline.
+              You are publishing as {currentUser.fullName} for {universityName}. This flow now mirrors your dark glass event-composer reference while keeping the real submission pipeline.
             </p>
           </div>
 
