@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { FeedbackBanner } from "@/components/feedback-banner";
+import { ImageUploadPreview } from "@/components/image-upload-preview";
 import { SiteHeader } from "@/components/site-header";
 import { getSessionUser } from "@/lib/session";
 import { getUniversities } from "@/lib/store";
@@ -59,19 +60,7 @@ export default async function CreatePostPage({
           >
             <section className="upload-stage">
               <div className="upload-dropzone">
-                <div>
-                  <div className="poster-preview">
-                    <span>^</span>
-                  </div>
-                  <p>
-                    Drag and drop your event poster or upload from your device. You can also{" "}
-                    <label htmlFor="coverUpload">browse</label> and keep an external image URL as a fallback.
-                  </p>
-                  <input accept="image/*" id="coverUpload" name="coverUpload" type="file" />
-                  <p className="muted" style={{ marginTop: 14 }}>
-                    JPG, PNG, GIF, or WebP up to 5 MB. Files are uploaded to Supabase Storage.
-                  </p>
-                </div>
+                <ImageUploadPreview inputId="coverUpload" inputName="coverUpload" />
               </div>
             </section>
 
