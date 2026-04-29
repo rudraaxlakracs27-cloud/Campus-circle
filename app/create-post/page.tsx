@@ -182,7 +182,8 @@ export default async function CreatePostPage({
                 ) : null}
                 {params.error === "storage-upload-failed" ? (
                   <p className="form-error">
-                    We could not upload that image to Supabase Storage. Check your bucket and policies.
+                    We could not upload that image to Supabase Storage. Check that the
+                    `event-media` bucket exists and that its upload policy was applied in Supabase.
                   </p>
                 ) : null}
                 {params.error === "invalid-image-url" ? (

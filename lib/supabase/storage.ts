@@ -47,11 +47,22 @@ export async function uploadEventCoverImage(file: File, userId: string) {
   });
 
   if (error) {
+    const message = error.message.toLowerCase();
+    const hint =
+      message.includes("bucket") && message.includes("not found")
+        ? "bucket-missing"
+        : message.includes("row-level security") || message.includes("permission")
+          ? "policy-blocked"
+          : message.includes("jwt") || message.includes("auth") || message.includes("token")
+            ? "auth-failed"
+            : "unknown";
+
     console.error("[storage] Failed to upload event cover image.", {
       bucket,
       contentType: file.type,
       fileName: file.name,
       filePath,
+      hint,
       size: file.size,
       userId,
       error

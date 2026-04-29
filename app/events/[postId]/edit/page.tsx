@@ -122,7 +122,10 @@ export default async function EditPostPage({
                   <p className="form-error field-full">Uploaded image is too large. Keep it under 5 MB.</p>
                 ) : null}
                 {query.error === "storage-upload-failed" ? (
-                  <p className="form-error field-full">The image upload failed in Supabase Storage.</p>
+                  <p className="form-error field-full">
+                    The image upload failed in Supabase Storage. Check that the `event-media`
+                    bucket exists and that its upload policy was applied in Supabase.
+                  </p>
                 ) : null}
                 {query.error === "invalid-image-url" ? (
                   <p className="form-error field-full">External cover image must be a direct image URL.</p>
